@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  honeypot-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: honeypot-engine
+    ports:
+      - "2222:2222"  # SSH
+      - "8080:8080"  # HTTP
+      - "2121:2121"  # FTP
+      - "2323:2323"  # Telnet
+    environment:
+      - DB_TYPE=postgresql
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_NAME=honeypot_db
+      - DB_USER=honeypot_user
+      - DB_PASSWORD=honeypot_secure_password_123
+      - LOG_LEVEL=INFO
+    volumes:
+      - honeypot_logs:/logs
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - honeypot_network
+
+  database:
+    image: postgres:15-alpine
+    container_name: honeypot-db
+    environment:
+      - POSTGRES_DB=honeypot_db
+      - POSTGRES_USER=honeypot_user
+      - POSTGRES_PASSWORD=honeypot_secure_password_123
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - honeypot_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U honeypot_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dashboard-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: dashboard-backend
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_TYPE=postgresql
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_NAME=honeypot_db
+      - DB_USER=honeypot_user
+      - DB_PASSWORD=honeypot_secure_password_123
+      - DASHBOARD_PORT=5000
+      - LOG_LEVEL=INFO
+    volumes:
+      - honeypot_logs:/logs
+    restart: unless-stopped
+    networks:
+      - honeypot_network
+
+  dashboard-frontend:
+    build:
+      context: ./dashboard_frontend
+      dockerfile: Dockerfile
+    container_name: dashboard-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - dashboard-backend
+    restart: unless-stopped
+    networks:
+      - honeypot_network
+
+volumes:
+  database_data:
+  honeypot_logs:
+
+networks:
+  honeypot_network:
+    driver: bridge

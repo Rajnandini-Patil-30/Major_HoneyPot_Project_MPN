@@ -1,0 +1,90 @@
+app:
+  name: HoneyShield
+  version: "1.0.0"
+  environment: development  # development, staging, production
+
+database:
+  type: sqlite              # sqlite or postgresql
+  path: ./honeypot.db       # For SQLite
+  # For PostgreSQL:
+  # host: localhost
+  # port: 5432
+  # database: honeypot_db
+  # user: honeypot_user
+  # password: change_me
+  echo: true                # Log SQL queries
+  pool_size: 20
+  max_overflow: 40
+
+services:
+  ssh:
+    enabled: true
+    port: 2222
+    host: 0.0.0.0
+    banner: "SSH-2.0-OpenSSH_7.4"
+    max_connections: 10
+    
+  http:
+    enabled: true
+    port: 8080
+    host: 0.0.0.0
+    max_connections: 10
+    
+  ftp:
+    enabled: true
+    port: 2121
+    host: 0.0.0.0
+    banner: "220 FTP Server Ready"
+    max_connections: 10
+    
+  telnet:
+    enabled: true
+    port: 2323
+    host: 0.0.0.0
+    banner: "Welcome to HoneyShield Telnet Server"
+    max_connections: 10
+    
+  smtp:
+    enabled: false
+    port: 2525
+    host: 0.0.0.0
+    banner: "220 HoneyShield SMTP Server"
+    max_connections: 10
+
+dashboard:
+  host: 0.0.0.0
+  port: 5000
+  secret_key: change_this_secret_key_in_production
+  refresh_interval: 10      # Dashboard refresh in seconds
+  debug: false
+  
+geolocation:
+  use_offline: true
+  offline_db_path: ./geo_service/GeoLite2-City.mmdb
+  api_key: ""               # ip-api.com API key (optional)
+  cache_ttl: 86400          # 24 hours
+  
+logging:
+  level: INFO
+  file: ./logs/honeypot.log
+  max_bytes: 10485760       # 10 MB
+  backup_count: 5
+  
+security:
+  retention_days: 90
+  rate_limit_dashboard: 5   # Requests per minute for login
+  require_https: false      # Set to true in production
+  
+virtual_fs:
+  root_path: /
+  fake_users:
+    - root
+    - admin
+    - user
+    - www-data
+  fake_files:
+    /etc/passwd: |
+      root:x:0:0:root:/root:/bin/bash
+      daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+      bin:x:2:2:bin:/bin:/usr/sbin/nologin
+      admin:x:1000:1000:admin:/home/admin:/bin/bash

@@ -1,0 +1,13 @@
+.protocol-chart {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.protocol-chart .loading {
+  text-align: center;
+  color: #94a3b8;
+  padding: 40px 20px;
+}
